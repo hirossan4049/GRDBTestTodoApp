@@ -16,13 +16,16 @@ struct Todo: Codable, FetchableRecord, PersistableRecord {
     var updateAt: Date
 }
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     private lazy var dbQueue: DatabaseQueue = {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return try! DatabaseQueue(path: dir.absoluteString + "database.sqlite")
     }()
     
     private var todos: [Todo] = []
+    
+    @IBOutlet weak var textField: UITextField!
+    @IBOutlet weak var tableView: UITableView!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,11 +33,21 @@ class ViewController: UIViewController {
         
         setupDb()
         
-        todos = fetch()
-
-
+        todos = fetch().reversed()
         
-        print(fetch())
+        tableView.delegate = self
+        tableView.dataSource = self
+    }
+    
+    
+    @IBAction func addTapped() {
+        add(todo: Todo(id: nil, title: textField.text!, createAt: Date(), updateAt: Date()))
+        todos = fetch().reversed()
+        
+        tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .top)
+        
+        textField.text = ""
+        textField.resignFirstResponder()
     }
     
     func setupDb() {
@@ -49,9 +62,9 @@ class ViewController: UIViewController {
         }
     }
     
-    func add() {
+    func add(todo: Todo) {
         try! dbQueue.write { db in
-            try Todo(id: nil, title: "sakura", createAt: Date(), updateAt: Date()).insert(db)
+            try todo.insert(db)
         }
     }
     
@@ -60,6 +73,18 @@ class ViewController: UIViewController {
             try Todo.fetchAll(db)
         }
     }
+    
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        todos.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell()
+        cell.textLabel?.text = todos[indexPath.row].title
+        return cell
+    }
+    
 
 
 }
